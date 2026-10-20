@@ -50,6 +50,7 @@
             display: flex;
             flex-direction: column;
             overflow: hidden;
+            /* Force portrait layout dimensions if browser attempts auto-rotate, or keep app locked */
         }
 
         /* 18+ Warning Age Gate Modal */
@@ -111,12 +112,13 @@
 
         /* Header */
         header {
-            padding: 12px 20px;
+            padding: 10px 20px;
             background: var(--panel-bg);
             border-bottom: 1px solid var(--border);
             display: flex;
             justify-content: space-between;
             align-items: center;
+            flex-shrink: 0;
         }
 
         .logo-wrap {
@@ -174,7 +176,7 @@
         @media (max-width: 768px) {
             main {
                 grid-template-columns: 1fr;
-                grid-template-rows: 1fr 1fr;
+                grid-template-rows: 1.2fr 1fr;
             }
         }
 
@@ -188,6 +190,7 @@
             border-radius: 12px;
             padding: 8px;
             border: 1px solid var(--border);
+            min-height: 0;
         }
 
         @media (max-width: 550px) {
@@ -235,6 +238,7 @@
             display: flex;
             flex-direction: column;
             overflow: hidden;
+            min-height: 0;
         }
 
         .chat-messages {
@@ -269,6 +273,7 @@
             display: flex;
             gap: 8px;
             background: #121318;
+            flex-shrink: 0;
         }
 
         input[type="text"] {
@@ -288,19 +293,20 @@
 
         /* Controls */
         .controls {
-            padding: 12px;
+            padding: 10px 12px;
             background: var(--panel-bg);
             border-top: 1px solid var(--border);
             display: flex;
             justify-content: center;
             gap: 12px;
+            flex-shrink: 0;
         }
 
         .btn {
             font-family: inherit;
             font-size: 1rem;
             font-weight: 700;
-            padding: 12px 32px;
+            padding: 10px 32px;
             border-radius: 8px;
             border: none;
             cursor: pointer;
@@ -332,6 +338,32 @@
         .btn:disabled {
             opacity: 0.5;
             cursor: not-allowed;
+        }
+
+        /* Rotate overlay hint for forced landscape or portrait responsiveness */
+        #rotateWarning {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(13, 14, 18, 0.98);
+            z-index: 10000;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            padding: 20px;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        @media (max-height: 500px) and (orientation: landscape) {
+            /* If viewed in mobile landscape, optimize layout grid */
+            main {
+                grid-template-columns: 1fr 280px;
+                grid-template-rows: 1fr;
+            }
+            .video-container {
+                grid-template-columns: 1fr 1fr;
+            }
         }
     </style>
 </head>
@@ -422,13 +454,23 @@
             }
         };
 
+        // --- LOCK ORIENTATION API IF SUPPORTED ---
+        async function lockLandscape() {
+            try {
+                if (screen.orientation && screen.orientation.lock) {
+                    await screen.orientation.lock('landscape');
+                }
+            } catch (e) {
+                // Orientation lock can fail on browsers without full screen / user interaction permissions
+            }
+        }
+
         // --- REAL GLOBAL USER COUNT TRACKER VIA MQTT WEBSOCKETS ---
         const myClientId = 'usr_' + Math.random().toString(36).substring(2, 9);
         const globalPeers = new Map();
         globalPeers.set(myClientId, Date.now());
 
         const mqttTopic = 'roulettecam_presence_v1';
-        // Connect to free public MQTT broker over WebSocket
         const mqttClient = mqtt.connect('wss://broker.emqx.io:8084/mqtt', {
             clientId: myClientId,
             keepalive: 10,
@@ -458,10 +500,8 @@
             }
         }
 
-        // Send a ping every 3 seconds
         setInterval(sendPresenceHeartbeat, 3000);
 
-        // Purge users offline for > 6 seconds
         setInterval(() => {
             const now = Date.now();
             globalPeers.set(myClientId, now);
@@ -480,6 +520,7 @@
         // --- AGE GATE & CAMERA ---
         agreeBtn.addEventListener('click', () => {
             ageModal.style.display = 'none';
+            lockLandscape();
             initMedia();
         });
 
