@@ -390,6 +390,8 @@
 
     <!-- PeerJS WebRTC Library -->
     <script src="https://cdn.jsdelivr.net/npm/peerjs@1.5.4/dist/peerjs.min.js"></script>
+    <!-- MQTT WebSocket client for global real-time user counter -->
+    <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
 
     <script>
         const $ = id => document.getElementById(id);
@@ -420,41 +422,62 @@
             }
         };
 
-        // --- REAL-TIME DISTRIBUTED ONLINE TRACKER ---
-        const myClientId = 'client-' + Math.random().toString(36).substring(2, 9);
-        const activePeers = new Map();
-        activePeers.set(myClientId, Date.now());
+        // --- REAL GLOBAL USER COUNT TRACKER VIA MQTT WEBSOCKETS ---
+        const myClientId = 'usr_' + Math.random().toString(36).substring(2, 9);
+        const globalPeers = new Map();
+        globalPeers.set(myClientId, Date.now());
 
-        // Broadcast presence using local tab channel (same device/browser tabs)
-        const presenceChannel = new BroadcastChannel('roulette_presence_mesh');
-        
-        presenceChannel.onmessage = (event) => {
-            if (event.data && event.data.type === 'ping') {
-                activePeers.set(event.data.id, Date.now());
-                updateLiveCountDisplay();
+        const mqttTopic = 'roulettecam_presence_v1';
+        // Connect to free public MQTT broker over WebSocket
+        const mqttClient = mqtt.connect('wss://broker.emqx.io:8084/mqtt', {
+            clientId: myClientId,
+            keepalive: 10,
+            clean: true
+        });
+
+        mqttClient.on('connect', () => {
+            mqttClient.subscribe(mqttTopic);
+            sendPresenceHeartbeat();
+        });
+
+        mqttClient.on('message', (topic, message) => {
+            if (topic === mqttTopic) {
+                try {
+                    const data = JSON.parse(message.toString());
+                    if (data && data.id) {
+                        globalPeers.set(data.id, Date.now());
+                        updateGlobalUserCount();
+                    }
+                } catch (e) {}
             }
-        };
+        });
 
-        // Send heartbeats every 2 seconds
-        setInterval(() => {
-            presenceChannel.postMessage({ type: 'ping', id: myClientId });
-            activePeers.set(myClientId, Date.now());
-
-            // Remove peers silent for more than 5 seconds
-            const now = Date.now();
-            activePeers.forEach((lastSeen, id) => {
-                if (now - lastSeen > 5000) {
-                    activePeers.delete(id);
-                }
-            });
-            updateLiveCountDisplay();
-        }, 2000);
-
-        function updateLiveCountDisplay() {
-            userCountEl.textContent = activePeers.size;
+        function sendPresenceHeartbeat() {
+            if (mqttClient.connected) {
+                mqttClient.publish(mqttTopic, JSON.stringify({ id: myClientId, t: Date.now() }));
+            }
         }
 
-        // --- AGE GATE & MEDIA ---
+        // Send a ping every 3 seconds
+        setInterval(sendPresenceHeartbeat, 3000);
+
+        // Purge users offline for > 6 seconds
+        setInterval(() => {
+            const now = Date.now();
+            globalPeers.set(myClientId, now);
+            globalPeers.forEach((lastSeen, id) => {
+                if (now - lastSeen > 6000) {
+                    globalPeers.delete(id);
+                }
+            });
+            updateGlobalUserCount();
+        }, 2000);
+
+        function updateGlobalUserCount() {
+            userCountEl.textContent = globalPeers.size;
+        }
+
+        // --- AGE GATE & CAMERA ---
         agreeBtn.addEventListener('click', () => {
             ageModal.style.display = 'none';
             initMedia();
