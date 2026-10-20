@@ -5,15 +5,15 @@
     <!-- Google AdSense -->
     <meta name="google-adsense-account" content="ca-pub-7963880628277539">
     <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-7963880628277539" crossorigin="anonymous"></script>
-    
-    
+
+
     <!-- Google tag (gtag.js) -->
     <script async src="https://www.googletagmanager.com/gtag/js?id=G-PGR4Y0TVNP"></script>
     <script>
       window.dataLayer = window.dataLayer || [];
       function gtag(){dataLayer.push(arguments);}
       gtag('js', new Date());
-    
+
       gtag('config', 'G-PGR4Y0TVNP');
     </script>
     
@@ -355,7 +355,10 @@
             <div class="logo">RouletteCam</div>
             <span class="tag-18">18+</span>
         </div>
-        <div class="online-count"><span class="dot"></span> Live Matchmaking</div>
+        <div class="online-count">
+            <span class="dot"></span> 
+            <span>Live Matchmaking (<span id="userCount">--</span> online)</span>
+        </div>
     </header>
 
     <main>
@@ -400,6 +403,7 @@
         const chatForm = $('chatForm');
         const chatInput = $('chatInput');
         const sendBtn = $('sendBtn');
+        const userCountEl = $('userCount');
 
         let localStream = null;
         let peer = null;
@@ -415,6 +419,15 @@
                 ]
             }
         };
+
+        // Realistic live online count ticker simulation
+        let activeCount = Math.floor(Math.random() * 150) + 320;
+        userCountEl.textContent = activeCount;
+        setInterval(() => {
+            const fluctuation = Math.floor(Math.random() * 9) - 4; // -4 to +4
+            activeCount = Math.max(120, activeCount + fluctuation);
+            userCountEl.textContent = activeCount;
+        }, 4000);
 
         agreeBtn.addEventListener('click', () => {
             ageModal.style.display = 'none';
@@ -461,14 +474,12 @@
             }
         });
 
-        // Fixed reliable peer-to-peer random pairing logic
         function startSearch() {
             disconnectCurrent();
             isSearching = true;
             updateBtnState('searching');
             sysLog("Searching for a stranger...");
 
-            // Generate unique target lookup slot
             const poolNumber = Math.floor(Math.random() * 3);
             const targetId = 'roulette-pool-host-' + poolNumber;
             const myId = 'roulette-user-' + Math.random().toString(36).substring(2, 9);
@@ -476,9 +487,7 @@
             peer = new Peer(myId, ICE_SERVERS);
 
             peer.on('open', () => {
-                // Try calling an existing host slot
                 const call = peer.call(targetId, localStream);
-
                 let answered = false;
 
                 call.on('stream', remoteStream => {
@@ -493,7 +502,6 @@
                     if (isSearching) tryBecomeHost(targetId);
                 });
 
-                // If nobody answers within 2 seconds, become the host slot yourself
                 setTimeout(() => {
                     if (!answered && isSearching) {
                         call.close();
@@ -513,7 +521,6 @@
             if (!isSearching) return;
             if (peer) peer.destroy();
 
-            // Re-initialize using the pool host ID so incoming users can connect to you
             peer = new Peer(targetId, ICE_SERVERS);
 
             peer.on('open', () => {
@@ -533,7 +540,6 @@
 
             peer.on('error', err => {
                 if (err.type === 'unavailable-id') {
-                    // Slot is already taken by another host, try searching again shortly
                     setTimeout(startSearch, 1000);
                 }
             });
