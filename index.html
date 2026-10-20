@@ -357,7 +357,7 @@
         </div>
         <div class="online-count">
             <span class="dot"></span> 
-            <span>Live Matchmaking (<span id="userCount">--</span> online)</span>
+            <span>Live Matchmaking (<span id="userCount">1</span> online)</span>
         </div>
     </header>
 
@@ -420,15 +420,41 @@
             }
         };
 
-        // Realistic live online count ticker simulation
-        let activeCount = Math.floor(Math.random() * 150) + 320;
-        userCountEl.textContent = activeCount;
-        setInterval(() => {
-            const fluctuation = Math.floor(Math.random() * 9) - 4; // -4 to +4
-            activeCount = Math.max(120, activeCount + fluctuation);
-            userCountEl.textContent = activeCount;
-        }, 4000);
+        // --- REAL-TIME DISTRIBUTED ONLINE TRACKER ---
+        const myClientId = 'client-' + Math.random().toString(36).substring(2, 9);
+        const activePeers = new Map();
+        activePeers.set(myClientId, Date.now());
 
+        // Broadcast presence using local tab channel (same device/browser tabs)
+        const presenceChannel = new BroadcastChannel('roulette_presence_mesh');
+        
+        presenceChannel.onmessage = (event) => {
+            if (event.data && event.data.type === 'ping') {
+                activePeers.set(event.data.id, Date.now());
+                updateLiveCountDisplay();
+            }
+        };
+
+        // Send heartbeats every 2 seconds
+        setInterval(() => {
+            presenceChannel.postMessage({ type: 'ping', id: myClientId });
+            activePeers.set(myClientId, Date.now());
+
+            // Remove peers silent for more than 5 seconds
+            const now = Date.now();
+            activePeers.forEach((lastSeen, id) => {
+                if (now - lastSeen > 5000) {
+                    activePeers.delete(id);
+                }
+            });
+            updateLiveCountDisplay();
+        }, 2000);
+
+        function updateLiveCountDisplay() {
+            userCountEl.textContent = activePeers.size;
+        }
+
+        // --- AGE GATE & MEDIA ---
         agreeBtn.addEventListener('click', () => {
             ageModal.style.display = 'none';
             initMedia();
@@ -474,6 +500,7 @@
             }
         });
 
+        // --- MATCHMAKING LOGIC ---
         function startSearch() {
             disconnectCurrent();
             isSearching = true;
