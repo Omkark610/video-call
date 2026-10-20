@@ -1,22 +1,22 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    
+
     <!-- Google AdSense -->
     <meta name="google-adsense-account" content="ca-pub-7963880628277539">
     <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-7963880628277539" crossorigin="anonymous"></script>
-
-
+    
+    
     <!-- Google tag (gtag.js) -->
     <script async src="https://www.googletagmanager.com/gtag/js?id=G-PGR4Y0TVNP"></script>
     <script>
       window.dataLayer = window.dataLayer || [];
       function gtag(){dataLayer.push(arguments);}
       gtag('js', new Date());
-
+    
       gtag('config', 'G-PGR4Y0TVNP');
     </script>
-
+    
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
     <title>RouletteCam - 18+ Random Video Chat</title>
@@ -52,7 +52,7 @@
             overflow: hidden;
         }
 
-        /* 18+ Warning Modal Overlay */
+        /* 18+ Warning Age Gate Modal */
         #ageModal {
             position: fixed;
             inset: 0;
@@ -405,7 +405,6 @@
         let peer = null;
         let currentCall = null;
         let currentConn = null;
-        let myPeerId = '';
         let isSearching = false;
 
         const ICE_SERVERS = {
@@ -417,13 +416,11 @@
             }
         };
 
-        // Age Verification Agreement
         agreeBtn.addEventListener('click', () => {
             ageModal.style.display = 'none';
             initMedia();
         });
 
-        // Initialize Camera & Microphone
         async function initMedia() {
             try {
                 localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
@@ -434,7 +431,6 @@
             }
         }
 
-        // System message logging
         function sysLog(text) {
             const msgDiv = document.createElement('div');
             msgDiv.className = 'msg sys';
@@ -443,7 +439,6 @@
             chatBox.scrollTop = chatBox.scrollHeight;
         }
 
-        // Chat message logging
         function appendMessage(sender, text) {
             const msgDiv = document.createElement('div');
             msgDiv.className = `msg ${sender}`;
@@ -453,7 +448,6 @@
             chatBox.scrollTop = chatBox.scrollHeight;
         }
 
-        // Action Button Flow (Start / Next / Disconnect)
         actionBtn.addEventListener('click', () => {
             if (!localStream) {
                 alert("Camera access is required to start.");
@@ -467,18 +461,63 @@
             }
         });
 
+        // Fixed reliable peer-to-peer random pairing logic
         function startSearch() {
             disconnectCurrent();
             isSearching = true;
             updateBtnState('searching');
-            sysLog("Looking for a stranger...");
+            sysLog("Searching for a stranger...");
 
-            // Initialize PeerJS client with random ID
-            myPeerId = 'roulette-' + Math.random().toString(36).substring(2, 9);
-            peer = new Peer(myPeerId, ICE_SERVERS);
+            // Generate unique target lookup slot
+            const poolNumber = Math.floor(Math.random() * 3);
+            const targetId = 'roulette-pool-host-' + poolNumber;
+            const myId = 'roulette-user-' + Math.random().toString(36).substring(2, 9);
+
+            peer = new Peer(myId, ICE_SERVERS);
 
             peer.on('open', () => {
-                joinMatchmaking();
+                // Try calling an existing host slot
+                const call = peer.call(targetId, localStream);
+
+                let answered = false;
+
+                call.on('stream', remoteStream => {
+                    answered = true;
+                    isSearching = false;
+                    setupCall(call);
+                    const conn = peer.connect(targetId);
+                    setupChatConnection(conn);
+                });
+
+                call.on('error', () => {
+                    if (isSearching) tryBecomeHost(targetId);
+                });
+
+                // If nobody answers within 2 seconds, become the host slot yourself
+                setTimeout(() => {
+                    if (!answered && isSearching) {
+                        call.close();
+                        tryBecomeHost(targetId);
+                    }
+                }, 2000);
+            });
+
+            peer.on('error', () => {
+                if (isSearching) {
+                    setTimeout(startSearch, 1500);
+                }
+            });
+        }
+
+        function tryBecomeHost(targetId) {
+            if (!isSearching) return;
+            if (peer) peer.destroy();
+
+            // Re-initialize using the pool host ID so incoming users can connect to you
+            peer = new Peer(targetId, ICE_SERVERS);
+
+            peer.on('open', () => {
+                sysLog("Waiting for someone to connect...");
             });
 
             peer.on('call', incomingCall => {
@@ -493,64 +532,13 @@
             });
 
             peer.on('error', err => {
-                console.warn("Peer Error:", err.type);
-                if (isSearching) {
-                    setTimeout(joinMatchmaking, 1000);
+                if (err.type === 'unavailable-id') {
+                    // Slot is already taken by another host, try searching again shortly
+                    setTimeout(startSearch, 1000);
                 }
             });
         }
 
-        // Matchmaking queue simulation using public lobby channels
-        function joinMatchmaking() {
-            if (!isSearching) return;
-
-            const lobbyId = 'roulette-pool-' + Math.floor(Math.random() * 5);
-            const call = peer.call(lobbyId, localStream);
-
-            let connected = false;
-
-            call.on('stream', remoteStream => {
-                connected = true;
-                isSearching = false;
-                setupCall(call);
-                const conn = peer.connect(call.peer);
-                setupChatConnection(conn);
-            });
-
-            setTimeout(() => {
-                if (!connected && isSearching) {
-                    call.close();
-                    rehostAsLobbySlot(lobbyId);
-                }
-            }, 2500);
-        }
-
-        function rehostAsLobbySlot(lobbyId) {
-            if (!isSearching) return;
-            
-            if (peer) peer.destroy();
-            peer = new Peer(lobbyId, ICE_SERVERS);
-
-            peer.on('open', () => {
-                sysLog("Waiting for someone to join...");
-            });
-
-            peer.on('call', incomingCall => {
-                isSearching = false;
-                incomingCall.answer(localStream);
-                setupCall(incomingCall);
-            });
-
-            peer.on('connection', conn => {
-                setupChatConnection(conn);
-            });
-
-            peer.on('error', () => {
-                if (isSearching) setTimeout(startSearch, 500);
-            });
-        }
-
-        // Setup Media Stream
         function setupCall(call) {
             currentCall = call;
             updateBtnState('connected');
@@ -566,7 +554,6 @@
             });
         }
 
-        // Setup Chat DataChannel
         function setupChatConnection(conn) {
             currentConn = conn;
 
@@ -629,7 +616,6 @@
             if (enable) chatInput.focus();
         }
 
-        // Chat Form Handle
         chatForm.addEventListener('submit', e => {
             e.preventDefault();
             const text = chatInput.value.trim();
