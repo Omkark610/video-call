@@ -1,172 +1,644 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+    
+    <!-- Google AdSense -->
+    <meta name="google-adsense-account" content="ca-pub-7963880628277539">
+    <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-7963880628277539" crossorigin="anonymous"></script>
+
+
+    <!-- Google tag (gtag.js) -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-PGR4Y0TVNP"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+
+      gtag('config', 'G-PGR4Y0TVNP');
+    </script>
+
     <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Simple WebRTC Video Call</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <title>RouletteCam - 18+ Random Video Chat</title>
     <style>
-        body {
+        :root {
+            --bg-color: #0d0e12;
+            --panel-bg: #181a20;
+            --accent: #22c55e;
+            --accent-hover: #16a34a;
+            --danger: #ef4444;
+            --danger-hover: #dc2626;
+            --warning: #f59e0b;
+            --text: #f3f4f6;
+            --text-sub: #9ca3af;
+            --border: #2a2d36;
+        }
+
+        * {
+            box-sizing: border-box;
             margin: 0;
-            font-family: system-ui, sans-serif;
-            background: #0f1015;
-            color: #fff;
+            padding: 0;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text);
+            height: 100vh;
+            height: 100dvh;
             display: flex;
             flex-direction: column;
+            overflow: hidden;
+        }
+
+        /* 18+ Warning Modal Overlay */
+        #ageModal {
+            position: fixed;
+            inset: 0;
+            background: rgba(5, 6, 8, 0.92);
+            backdrop-filter: blur(8px);
+            z-index: 999;
+            display: flex;
             align-items: center;
             justify-content: center;
-            min-height: 100vh;
+            padding: 20px;
         }
-        h2 { margin-bottom: 5px; }
-        #status { font-size: 14px; color: #a0aec0; margin-bottom: 15px; }
-        .video-container {
-            display: flex;
-            gap: 15px;
-            flex-wrap: wrap;
-            justify-content: center;
-            max-width: 900px;
+
+        .modal-card {
+            background: var(--panel-bg);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            max-width: 440px;
             width: 100%;
-            padding: 10px;
+            padding: 28px 24px;
+            text-align: center;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.6);
         }
-        video {
-            width: 100%;
-            max-width: 400px;
-            height: 300px;
-            background: #1a1c23;
-            border-radius: 12px;
-            object-fit: cover;
-            border: 2px solid #2d3748;
+
+        .badge-18 {
+            display: inline-block;
+            background: var(--danger);
+            color: #fff;
+            font-size: 0.9rem;
+            font-weight: 800;
+            padding: 4px 10px;
+            border-radius: 6px;
+            margin-bottom: 12px;
+            letter-spacing: 0.05em;
         }
-        .controls {
-            margin-top: 20px;
+
+        .modal-card h2 {
+            font-size: 1.5rem;
+            margin-bottom: 10px;
+        }
+
+        .modal-card p {
+            font-size: 0.9rem;
+            color: var(--text-sub);
+            line-height: 1.5;
+            margin-bottom: 20px;
+        }
+
+        .modal-actions {
             display: flex;
+            gap: 12px;
+        }
+
+        .modal-actions button {
+            flex: 1;
+        }
+
+        /* Header */
+        header {
+            padding: 12px 20px;
+            background: var(--panel-bg);
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo-wrap {
+            display: flex;
+            align-items: center;
             gap: 10px;
         }
-        button, input {
-            padding: 12px 20px;
-            border-radius: 8px;
-            border: 1px solid #4a5568;
-            background: #2d3748;
-            color: #fff;
-            font-size: 16px;
-            cursor: pointer;
+
+        .logo {
+            font-size: 1.35rem;
+            font-weight: 900;
+            letter-spacing: -0.03em;
+            background: linear-gradient(135deg, #ff416c, #8a2387);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
         }
-        button:hover { background: #4a5568; }
-        button#callBtn { background: #3182ce; border-color: #3182ce; }
-        button#callBtn:hover { background: #2b6cb0; }
-        input { text-align: center; background: #1a1c23; }
+
+        .tag-18 {
+            border: 1.5px solid var(--danger);
+            color: var(--danger);
+            font-size: 0.7rem;
+            font-weight: 800;
+            padding: 1px 5px;
+            border-radius: 4px;
+            line-height: 1;
+        }
+
+        .online-count {
+            font-size: 0.85rem;
+            color: var(--text-sub);
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .dot {
+            width: 8px;
+            height: 8px;
+            background-color: var(--accent);
+            border-radius: 50%;
+            display: inline-block;
+            box-shadow: 0 0 8px var(--accent);
+        }
+
+        /* Main Workspace */
+        main {
+            flex: 1;
+            display: grid;
+            grid-template-columns: 1fr 340px;
+            gap: 12px;
+            padding: 12px;
+            min-height: 0;
+        }
+
+        @media (max-width: 768px) {
+            main {
+                grid-template-columns: 1fr;
+                grid-template-rows: 1fr 1fr;
+            }
+        }
+
+        /* Video Section */
+        .video-container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            position: relative;
+            background: var(--panel-bg);
+            border-radius: 12px;
+            padding: 8px;
+            border: 1px solid var(--border);
+        }
+
+        @media (max-width: 550px) {
+            .video-container {
+                grid-template-columns: 1fr;
+                grid-template-rows: 1fr 1fr;
+            }
+        }
+
+        .video-box {
+            position: relative;
+            background: #000;
+            border-radius: 8px;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        video {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .label {
+            position: absolute;
+            bottom: 10px;
+            left: 10px;
+            background: rgba(0, 0, 0, 0.65);
+            backdrop-filter: blur(4px);
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 500;
+            color: var(--text);
+            pointer-events: none;
+        }
+
+        /* Chat Section */
+        .chat-container {
+            background: var(--panel-bg);
+            border-radius: 12px;
+            border: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .chat-messages {
+            flex: 1;
+            padding: 12px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            font-size: 0.9rem;
+        }
+
+        .msg {
+            word-wrap: break-word;
+            line-height: 1.4;
+        }
+
+        .msg.sys {
+            color: var(--text-sub);
+            font-style: italic;
+            font-size: 0.8rem;
+            text-align: center;
+            margin: 4px 0;
+        }
+
+        .msg.you { color: #60a5fa; }
+        .msg.stranger { color: #ff416c; }
+
+        .chat-input-area {
+            padding: 10px;
+            border-top: 1px solid var(--border);
+            display: flex;
+            gap: 8px;
+            background: #121318;
+        }
+
+        input[type="text"] {
+            flex: 1;
+            background: var(--panel-bg);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 10px 12px;
+            color: var(--text);
+            font-size: 0.9rem;
+            outline: none;
+        }
+
+        input[type="text"]:focus {
+            border-color: #ff416c;
+        }
+
+        /* Controls */
+        .controls {
+            padding: 12px;
+            background: var(--panel-bg);
+            border-top: 1px solid var(--border);
+            display: flex;
+            justify-content: center;
+            gap: 12px;
+        }
+
+        .btn {
+            font-family: inherit;
+            font-size: 1rem;
+            font-weight: 700;
+            padding: 12px 32px;
+            border-radius: 8px;
+            border: none;
+            cursor: pointer;
+            transition: all 0.15s ease;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn-start { background: var(--accent); color: #fff; }
+        .btn-start:hover { background: var(--accent-hover); }
+
+        .btn-skip { background: var(--danger); color: #fff; }
+        .btn-skip:hover { background: var(--danger-hover); }
+
+        .btn-secondary {
+            background: #2a2d36;
+            color: var(--text-sub);
+        }
+        .btn-secondary:hover { background: #353945; color: #fff; }
+
+        .btn-send {
+            background: #3b82f6;
+            color: white;
+            padding: 0 16px;
+        }
+        .btn-send:hover { background: #2563eb; }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
     </style>
 </head>
 <body>
 
-    <h2>P2P Video Call</h2>
-    <div id="status">Initializing camera...</div>
-
-    <div class="video-container">
-        <div>
-            <p style="margin:0 0 5px; font-size:13px; color:#a0aec0;">You</p>
-            <video id="localVideo" autoplay muted playsinline></video>
-        </div>
-        <div>
-            <p style="margin:0 0 5px; font-size:13px; color:#a0aec0;">Remote User</p>
-            <video id="remoteVideo" autoplay playsinline></video>
+    <!-- 18+ Warning Age Gate Modal -->
+    <div id="ageModal">
+        <div class="modal-card">
+            <span class="badge-18">18+ ADULTS ONLY</span>
+            <h2>Age Verification</h2>
+            <p>You must be at least 18 years old to enter <b>RouletteCam</b>. Explicit or illegal conduct is strictly prohibited.</p>
+            <div class="modal-actions">
+                <button class="btn btn-secondary" onclick="window.location.href='https://www.google.com'">Leave</button>
+                <button class="btn btn-start" id="agreeBtn">I am 18+</button>
+            </div>
         </div>
     </div>
+
+    <header>
+        <div class="logo-wrap">
+            <div class="logo">RouletteCam</div>
+            <span class="tag-18">18+</span>
+        </div>
+        <div class="online-count"><span class="dot"></span> Live Matchmaking</div>
+    </header>
+
+    <main>
+        <div class="video-container">
+            <div class="video-box">
+                <video id="localVideo" autoplay muted playsinline></video>
+                <div class="label">You</div>
+            </div>
+            <div class="video-box">
+                <video id="remoteVideo" autoplay playsinline></video>
+                <div class="label" id="remoteLabel">Stranger</div>
+            </div>
+        </div>
+
+        <div class="chat-container">
+            <div class="chat-messages" id="chatBox">
+                <div class="msg sys">Welcome to RouletteCam! Click "Start" to meet strangers.</div>
+            </div>
+            <form class="chat-input-area" id="chatForm">
+                <input type="text" id="chatInput" placeholder="Type a message..." autocomplete="off" disabled>
+                <button type="submit" class="btn btn-send" id="sendBtn" disabled>Send</button>
+            </form>
+        </div>
+    </main>
 
     <div class="controls">
-        <input id="roomCode" value="Call" placeholder="Room Code">
-        <button id="callBtn">Join Room</button>
+        <button class="btn btn-start" id="actionBtn">Start</button>
     </div>
 
-    <!-- Include PeerJS for effortless WebRTC signaling -->
+    <!-- PeerJS WebRTC Library -->
     <script src="https://cdn.jsdelivr.net/npm/peerjs@1.5.4/dist/peerjs.min.js"></script>
+
     <script>
         const $ = id => document.getElementById(id);
-        const statusEl = $('status');
+
+        const ageModal = $('ageModal');
+        const agreeBtn = $('agreeBtn');
         const localVideo = $('localVideo');
         const remoteVideo = $('remoteVideo');
-        
-        let localStream;
-        let peer;
-        let currentCall;
+        const actionBtn = $('actionBtn');
+        const chatBox = $('chatBox');
+        const chatForm = $('chatForm');
+        const chatInput = $('chatInput');
+        const sendBtn = $('sendBtn');
 
-        // Unique prefix to prevent ID collisions on the public PeerJS broker
-        const getPeerId = code => 'webrtc-video-room-' + code.toLowerCase();
+        let localStream = null;
+        let peer = null;
+        let currentCall = null;
+        let currentConn = null;
+        let myPeerId = '';
+        let isSearching = false;
 
-        // 1. Get user media (Camera + Mic) on load
-        navigator.mediaDevices.getUserMedia({ video: true, audio: true })
-            .then(stream => {
-                localStream = stream;
-                localVideo.srcObject = stream;
-                statusEl.textContent = 'Camera ready. Enter room code and click Join.';
-            })
-            .catch(err => {
-                statusEl.textContent = 'Camera/Microphone access denied or unavailable.';
-                console.error(err);
-            });
-
-        // 2. Handle Joining / Connecting via Room Code
-        $('callBtn').onclick = () => {
-            const roomCode = $('roomCode').value.trim();
-            if (!roomCode) return alert('Please enter a room code');
-            if (!localStream) return alert('Camera stream not loaded yet.');
-
-            $('callBtn').disabled = true;
-            statusEl.textContent = 'Connecting to room "' + roomCode + '"...';
-
-            // Initialize Peer object
-            peer = new Peer({
-                config: { iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] }
-            });
-
-            peer.on('open', id => {
-                // Try to connect to an existing host in the room, or become the host if it's free
-                connectOrHost(roomCode);
-            });
-
-            peer.on('error', err => {
-                statusEl.textContent = 'Error: ' + err.type;
-                $('callBtn').disabled = false;
-            });
+        const ICE_SERVERS = {
+            config: {
+                iceServers: [
+                    { urls: 'stun:stun.l.google.com:19302' },
+                    { urls: 'stun:stun1.l.google.com:19302' }
+                ]
+            }
         };
 
-        function connectOrHost(roomCode) {
-            const targetId = getPeerId(roomCode);
+        // Age Verification Agreement
+        agreeBtn.addEventListener('click', () => {
+            ageModal.style.display = 'none';
+            initMedia();
+        });
 
-            // Attempt to call the room host first
-            statusEl.textContent = 'Searching for room...';
-            const call = peer.call(targetId, localStream);
+        // Initialize Camera & Microphone
+        async function initMedia() {
+            try {
+                localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+                localVideo.srcObject = localStream;
+            } catch (err) {
+                sysLog("Error accessing camera/microphone. Please check permissions.");
+                console.error("Media Error: ", err);
+            }
+        }
 
-            if (call) {
-                setupCall(call);
+        // System message logging
+        function sysLog(text) {
+            const msgDiv = document.createElement('div');
+            msgDiv.className = 'msg sys';
+            msgDiv.textContent = text;
+            chatBox.appendChild(msgDiv);
+            chatBox.scrollTop = chatBox.scrollHeight;
+        }
+
+        // Chat message logging
+        function appendMessage(sender, text) {
+            const msgDiv = document.createElement('div');
+            msgDiv.className = `msg ${sender}`;
+            msgDiv.innerHTML = `<b>${sender === 'you' ? 'You' : 'Stranger'}:</b> `;
+            msgDiv.appendChild(document.createTextNode(text));
+            chatBox.appendChild(msgDiv);
+            chatBox.scrollTop = chatBox.scrollHeight;
+        }
+
+        // Action Button Flow (Start / Next / Disconnect)
+        actionBtn.addEventListener('click', () => {
+            if (!localStream) {
+                alert("Camera access is required to start.");
+                return;
             }
 
-            // Also listen for incoming calls (if we end up being the first person in the room)
+            if (!isSearching && !currentCall && !currentConn) {
+                startSearch();
+            } else {
+                nextStranger();
+            }
+        });
+
+        function startSearch() {
+            disconnectCurrent();
+            isSearching = true;
+            updateBtnState('searching');
+            sysLog("Looking for a stranger...");
+
+            // Initialize PeerJS client with random ID
+            myPeerId = 'roulette-' + Math.random().toString(36).substring(2, 9);
+            peer = new Peer(myPeerId, ICE_SERVERS);
+
+            peer.on('open', () => {
+                joinMatchmaking();
+            });
+
             peer.on('call', incomingCall => {
-                statusEl.textContent = 'Incoming call detected! Connecting...';
+                if (!isSearching) return;
+                isSearching = false;
                 incomingCall.answer(localStream);
                 setupCall(incomingCall);
             });
 
-            // If nobody is there within 2 seconds, switch to hosting/waiting state
-            setTimeout(() => {
-                if (!currentCall) {
-                    statusEl.textContent = 'Waiting for another user to join room "' + roomCode + '"...';
+            peer.on('connection', conn => {
+                setupChatConnection(conn);
+            });
+
+            peer.on('error', err => {
+                console.warn("Peer Error:", err.type);
+                if (isSearching) {
+                    setTimeout(joinMatchmaking, 1000);
                 }
-            }, 2000);
+            });
         }
 
-        function setupCall(call) {
-            currentCall = call;
+        // Matchmaking queue simulation using public lobby channels
+        function joinMatchmaking() {
+            if (!isSearching) return;
+
+            const lobbyId = 'roulette-pool-' + Math.floor(Math.random() * 5);
+            const call = peer.call(lobbyId, localStream);
+
+            let connected = false;
+
             call.on('stream', remoteStream => {
-                remoteVideo.srcObject = remoteStream;
-                statusEl.textContent = 'Connected!';
+                connected = true;
+                isSearching = false;
+                setupCall(call);
+                const conn = peer.connect(call.peer);
+                setupChatConnection(conn);
             });
-            call.on('close', () => {
-                statusEl.textContent = 'Call ended.';
-                remoteVideo.srcObject = null;
-                $('callBtn').disabled = false;
+
+            setTimeout(() => {
+                if (!connected && isSearching) {
+                    call.close();
+                    rehostAsLobbySlot(lobbyId);
+                }
+            }, 2500);
+        }
+
+        function rehostAsLobbySlot(lobbyId) {
+            if (!isSearching) return;
+            
+            if (peer) peer.destroy();
+            peer = new Peer(lobbyId, ICE_SERVERS);
+
+            peer.on('open', () => {
+                sysLog("Waiting for someone to join...");
+            });
+
+            peer.on('call', incomingCall => {
+                isSearching = false;
+                incomingCall.answer(localStream);
+                setupCall(incomingCall);
+            });
+
+            peer.on('connection', conn => {
+                setupChatConnection(conn);
+            });
+
+            peer.on('error', () => {
+                if (isSearching) setTimeout(startSearch, 500);
             });
         }
+
+        // Setup Media Stream
+        function setupCall(call) {
+            currentCall = call;
+            updateBtnState('connected');
+
+            call.on('stream', remoteStream => {
+                remoteVideo.srcObject = remoteStream;
+                sysLog("Connected to a stranger! Say hi.");
+                toggleChat(true);
+            });
+
+            call.on('close', () => {
+                handleStrangerDisconnected();
+            });
+        }
+
+        // Setup Chat DataChannel
+        function setupChatConnection(conn) {
+            currentConn = conn;
+
+            conn.on('data', data => {
+                if (typeof data === 'string') {
+                    appendMessage('stranger', data);
+                }
+            });
+
+            conn.on('close', () => {
+                handleStrangerDisconnected();
+            });
+        }
+
+        function handleStrangerDisconnected() {
+            sysLog("Stranger has disconnected.");
+            disconnectCurrent();
+            updateBtnState('idle');
+        }
+
+        function disconnectCurrent() {
+            if (currentCall) {
+                currentCall.close();
+                currentCall = null;
+            }
+            if (currentConn) {
+                currentConn.close();
+                currentConn = null;
+            }
+            if (peer) {
+                peer.destroy();
+                peer = null;
+            }
+            remoteVideo.srcObject = null;
+            toggleChat(false);
+            isSearching = false;
+        }
+
+        function nextStranger() {
+            disconnectCurrent();
+            startSearch();
+        }
+
+        function updateBtnState(state) {
+            if (state === 'searching') {
+                actionBtn.textContent = 'Stop / Skip';
+                actionBtn.className = 'btn btn-skip';
+            } else if (state === 'connected') {
+                actionBtn.textContent = 'Next Stranger';
+                actionBtn.className = 'btn btn-skip';
+            } else {
+                actionBtn.textContent = 'Start';
+                actionBtn.className = 'btn btn-start';
+            }
+        }
+
+        function toggleChat(enable) {
+            chatInput.disabled = !enable;
+            sendBtn.disabled = !enable;
+            if (enable) chatInput.focus();
+        }
+
+        // Chat Form Handle
+        chatForm.addEventListener('submit', e => {
+            e.preventDefault();
+            const text = chatInput.value.trim();
+            if (!text || !currentConn) return;
+
+            currentConn.send(text);
+            appendMessage('you', text);
+            chatInput.value = '';
+        });
     </script>
 </body>
 </html>
