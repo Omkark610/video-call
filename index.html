@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Simple WebRTC Video Call</title>
+    <style>
+        body {
+            margin: 0;
+            font-family: system-ui, sans-serif;
+            background: #0f1015;
+            color: #fff;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+        }
+        h2 { margin-bottom: 5px; }
+        #status { font-size: 14px; color: #a0aec0; margin-bottom: 15px; }
+        .video-container {
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+            justify-content: center;
+            max-width: 900px;
+            width: 100%;
+            padding: 10px;
+        }
+        video {
+            width: 100%;
+            max-width: 400px;
+            height: 300px;
+            background: #1a1c23;
+            border-radius: 12px;
+            object-fit: cover;
+            border: 2px solid #2d3748;
+        }
+        .controls {
+            margin-top: 20px;
+            display: flex;
+            gap: 10px;
+        }
+        button, input {
+            padding: 12px 20px;
+            border-radius: 8px;
+            border: 1px solid #4a5568;
+            background: #2d3748;
+            color: #fff;
+            font-size: 16px;
+            cursor: pointer;
+        }
+        button:hover { background: #4a5568; }
+        button#callBtn { background: #3182ce; border-color: #3182ce; }
+        button#callBtn:hover { background: #2b6cb0; }
+        input { text-align: center; background: #1a1c23; }
+    </style>
+</head>
+<body>
+
+    <h2>P2P Video Call</h2>
+    <div id="status">Initializing camera...</div>
+
+    <div class="video-container">
+        <div>
+            <p style="margin:0 0 5px; font-size:13px; color:#a0aec0;">You</p>
+            <video id="localVideo" autoplay muted playsinline></video>
+        </div>
+        <div>
+            <p style="margin:0 0 5px; font-size:13px; color:#a0aec0;">Remote User</p>
+            <video id="remoteVideo" autoplay playsinline></video>
+        </div>
+    </div>
+
+    <div class="controls">
+        <input id="roomCode" value="Call" placeholder="Room Code">
+        <button id="callBtn">Join Room</button>
+    </div>
+
+    <!-- Include PeerJS for effortless WebRTC signaling -->
+    <script src="https://cdn.jsdelivr.net/npm/peerjs@1.5.4/dist/peerjs.min.js"></script>
+    <script>
+        const $ = id => document.getElementById(id);
+        const statusEl = $('status');
+        const localVideo = $('localVideo');
+        const remoteVideo = $('remoteVideo');
+        
+        let localStream;
+        let peer;
+        let currentCall;
+
+        // Unique prefix to prevent ID collisions on the public PeerJS broker
+        const getPeerId = code => 'webrtc-video-room-' + code.toLowerCase();
+
+        // 1. Get user media (Camera + Mic) on load
+        navigator.mediaDevices.getUserMedia({ video: true, audio: true })
+            .then(stream => {
+                localStream = stream;
+                localVideo.srcObject = stream;
+                statusEl.textContent = 'Camera ready. Enter room code and click Join.';
+            })
+            .catch(err => {
+                statusEl.textContent = 'Camera/Microphone access denied or unavailable.';
+                console.error(err);
+            });
+
+        // 2. Handle Joining / Connecting via Room Code
+        $('callBtn').onclick = () => {
+            const roomCode = $('roomCode').value.trim();
+            if (!roomCode) return alert('Please enter a room code');
+            if (!localStream) return alert('Camera stream not loaded yet.');
+
+            $('callBtn').disabled = true;
+            statusEl.textContent = 'Connecting to room "' + roomCode + '"...';
+
+            // Initialize Peer object
+            peer = new Peer({
+                config: { iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] }
+            });
+
+            peer.on('open', id => {
+                // Try to connect to an existing host in the room, or become the host if it's free
+                connectOrHost(roomCode);
+            });
+
+            peer.on('error', err => {
+                statusEl.textContent = 'Error: ' + err.type;
+                $('callBtn').disabled = false;
+            });
+        };
+
+        function connectOrHost(roomCode) {
+            const targetId = getPeerId(roomCode);
+
+            // Attempt to call the room host first
+            statusEl.textContent = 'Searching for room...';
+            const call = peer.call(targetId, localStream);
+
+            if (call) {
+                setupCall(call);
+            }
+
+            // Also listen for incoming calls (if we end up being the first person in the room)
+            peer.on('call', incomingCall => {
+                statusEl.textContent = 'Incoming call detected! Connecting...';
+                incomingCall.answer(localStream);
+                setupCall(incomingCall);
+            });
+
+            // If nobody is there within 2 seconds, switch to hosting/waiting state
+            setTimeout(() => {
+                if (!currentCall) {
+                    statusEl.textContent = 'Waiting for another user to join room "' + roomCode + '"...';
+                }
+            }, 2000);
+        }
+
+        function setupCall(call) {
+            currentCall = call;
+            call.on('stream', remoteStream => {
+                remoteVideo.srcObject = remoteStream;
+                statusEl.textContent = 'Connected!';
+            });
+            call.on('close', () => {
+                statusEl.textContent = 'Call ended.';
+                remoteVideo.srcObject = null;
+                $('callBtn').disabled = false;
+            });
+        }
+    </script>
+</body>
+</html>
